@@ -5,12 +5,18 @@
   "type": "module",
   "description": "Uzbekistan State Flag Day anniversary 3D animation (Remotion + React Three Fiber)",
   "scripts": {
-    "studio": "remotion studio",
+    "sync": "node scripts/sync_assets.mjs",
+    "studio": "npm run sync && remotion studio",
     "typeface": "node scripts/make_typeface.mjs",
     "test:flag": "node scripts/test_flag_texture.mjs",
-    "stills": "node scripts/render_stills.mjs",
-    "render:9x16": "remotion render FlagDay out/flagday_9x16.mp4 --gl=swangle --crf=16 --pixel-format=yuv420p",
-    "render:1x1": "remotion render FlagDay1x1 out/flagday_1x1.mp4 --gl=swangle --crf=16 --pixel-format=yuv420p",
+    "fonts:check": "python3 scripts/check_fonts.py public/fonts/*.ttf",
+    "stills": "npm run sync && node scripts/render_stills.mjs",
+    "render:9x16": "npm run sync && remotion render src/index.ts FlagDay out/flagday_9x16.mp4",
+    "render:1x1": "npm run sync && remotion render src/index.ts FlagDay1x1 out/flagday_1x1.mp4",
+    "render:4x5": "npm run sync && remotion render src/index.ts FlagDay4x5 out/flagday_4x5.mp4",
+    "gif-poster": "bash scripts/make_gif_poster.sh",
+    "verify": "node scripts/verify_output.mjs",
+    "render:all": "npm run test:flag && npm run render:9x16 && npm run render:1x1 && npm run gif-poster && npm run verify",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

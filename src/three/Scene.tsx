@@ -1,7 +1,8 @@
 import { ContactShadows, MeshReflectorMaterial } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import React, { useLayoutEffect, useMemo } from 'react';
-import { useCurrentFrame } from 'remotion';
+import { getStaticFiles, useCurrentFrame } from 'remotion';
+import { GlbHumo } from './GlbHumo';
 import * as THREE from 'three';
 import { Font } from 'three/examples/jsm/loaders/FontLoader.js';
 import { FPS, texts } from '../config';
@@ -52,6 +53,7 @@ export const Scene: React.FC<SceneProps> = ({ aspect, year, font3d, logo }) => {
   const frame = useCurrentFrame();
   const t = frame / FPS;
   const tx = texts(year);
+  const hasGlb = useMemo(() => getStaticFiles().some((f) => f.name === 'humo.glb'), []);
   const words = useMemo(() => {
     const font = new Font(font3d as ConstructorParameters<typeof Font>[0]);
     const big = buildWord(font, tx.big, BIG, true);
@@ -119,7 +121,7 @@ export const Scene: React.FC<SceneProps> = ({ aspect, year, font3d, logo }) => {
       <pointLight position={[sweepX, 6.4, 5.5]} intensity={sweepI} distance={12} decay={1.6} color="#fff0cf" />
 
       <group position={[0, -2.6 * sink, 0]}>
-        <HumoSculpture birdYaw={birdYaw} />
+        {hasGlb ? <GlbHumo birdYaw={birdYaw} /> : <HumoSculpture birdYaw={birdYaw} />}
       </group>
 
       <LogoHalo logo={logo} opacity={logoOpacity} glow={logoGlow} camPos={cam.position} />

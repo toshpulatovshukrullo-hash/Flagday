@@ -95,8 +95,8 @@ const FinaleStream: React.FC<{ boxes: CharBox[]; fs: number; width: number; heig
         const i = b.idx * 7 + k;
         out.push({
           x: b.x + b.w * hash01(i, 1), y: b.y + (hash01(i, 2) - 0.6) * fs * 0.7,
-          delay: T.textDissolve + ((b.idx / nChars) * 14) / FPS + 0.05 + 0.25 * hash01(i, 3),
-          dur: 0.85 + 0.45 * hash01(i, 4), bend: (hash01(i, 5) - 0.5) * 0.9, col: STREAM_COLS[Math.floor(hash01(i, 6) * 5)],
+          delay: T.textDissolve + ((b.idx / nChars) * 14) / FPS + 0.05 + 0.2 * hash01(i, 3),
+          dur: 0.7 + 0.3 * hash01(i, 4), bend: (hash01(i, 5) - 0.5) * 0.9, col: STREAM_COLS[Math.floor(hash01(i, 6) * 5)],
           shard: hash01(i, 7) < 0.28, size: 2 + 3.5 * hash01(i, 8), rot: hash01(i, 9) * 6.28, spin: (hash01(i, 10) - 0.5) * 8,
         });
       }
@@ -110,9 +110,12 @@ const FinaleStream: React.FC<{ boxes: CharBox[]; fs: number; width: number; heig
     const g = cv.getContext('2d')!;
     g.clearRect(0, 0, width, height);
     if (!active) return;
-    const cx = width / 2, cy = height / 2;
     const unit = Math.min(width, height) / 1080;
+    const rimR = Math.min(0.31 * width, 0.25 * height) * 0.98; // badge rim (matches the 3D badge radius rule)
     for (const p of parts) {
+      // each particle is absorbed on the badge ring, never over the flag face
+      const ang = Math.atan2(p.y - height / 2, p.x - width / 2);
+      const cx = width / 2 + Math.cos(ang) * rimR, cy = height / 2 + Math.sin(ang) * rimR;
       const u = clamp01((t - p.delay) / p.dur);
       if (u <= 0 || u >= 1) continue;
       const e = streamEase(u);
@@ -120,7 +123,7 @@ const FinaleStream: React.FC<{ boxes: CharBox[]; fs: number; width: number; heig
       const mx = (p.x + cx) / 2 + p.bend * width * 0.35, my = Math.min(p.y, cy) + (p.y - cy) * 0.15 - height * 0.05;
       const x = (1 - e) * (1 - e) * p.x + 2 * (1 - e) * e * mx + e * e * cx;
       const y = (1 - e) * (1 - e) * p.y + 2 * (1 - e) * e * my + e * e * cy;
-      const a = Math.sin(Math.PI * Math.min(1, u * 1.6)) * (1 - Math.pow(u, 3));
+      const a = Math.sin(Math.PI * Math.min(1, u * 1.6)) * (1 - Math.pow(u, 2.2));
       const s = p.size * unit * (1 - 0.5 * e);
       if (p.shard) {
         g.save(); g.translate(x, y); g.rotate(p.rot + p.spin * u); g.globalAlpha = a;

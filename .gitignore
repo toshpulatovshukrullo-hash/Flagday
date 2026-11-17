@@ -6,3 +6,8 @@ out/stills/
 out/dbg/
 fonts_src/
 .envrc
+out/qa/
+out/*.log
+# Rendered videos exceed GitHub's 100 MB file limit (grain at CRF 16) — regenerate with `npm run render:all`
+out/*.mp4
+out/dbg*/
