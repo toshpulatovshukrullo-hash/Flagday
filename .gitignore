@@ -14,3 +14,7 @@ out/dbg*/
 
 # Goal reel source material (broadcast footage / third-party photos) - not committed
 input/
+# Goal reel intermediates
+output/video_noaudio.mp4
+output/audio.wav
+output/qa/
