@@ -11,3 +11,6 @@ out/*.log
 # Rendered videos exceed GitHub's 100 MB file limit (grain at CRF 16) — regenerate with `npm run render:all`
 out/*.mp4
 out/dbg*/
+
+# Goal reel source material (broadcast footage / third-party photos) - not committed
+input/
