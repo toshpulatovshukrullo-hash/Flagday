@@ -19,3 +19,4 @@ output/video_noaudio.mp4
 output/audio.wav
 output/qa/
 __pycache__/
+goal_reel/models/
