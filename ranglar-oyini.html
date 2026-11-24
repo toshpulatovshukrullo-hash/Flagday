@@ -332,20 +332,28 @@ $('stars').textContent = stars;
 
 /* ---------- speech (recorded clips, works without device voices) ---------- */
 const player = new Audio(); player.preload='auto';
-let queue = [];
-function playNext(){
-  const k = queue.shift(); if (!k) return;
+let queue = [], gen = 0, doneCb = null;
+/* plays clips one by one with a calm pause between them; a new speak() cleanly replaces the old one */
+function playNext(g){
+  if (g!==gen) return;
+  const k = queue.shift();
+  if (!k){ const cb=doneCb; doneCb=null; if(cb) cb(); return; }
   player.src = AUDIO[k];
-  const p = player.play(); if (p && p.catch) p.catch(()=>{});
+  const p = player.play();
+  if (p && p.catch) p.catch(()=> setTimeout(()=>playNext(g), 600));
 }
-player.addEventListener('ended', ()=> setTimeout(playNext, 120));
-function speak(keys){
-  if (muted) return;
-  queue = keys.filter(k => AUDIO[k]);
+const advance = () => { const g=gen; setTimeout(()=>playNext(g), 450); };
+player.addEventListener('ended', advance);
+player.addEventListener('error', advance);
+function speak(keys, done, delay=0){
+  gen++; const g=gen;
+  doneCb = done || null;
   try{ player.pause(); }catch(e){}
-  playNext();
+  if (muted){ queue=[]; if(done) setTimeout(()=>{ if(g===gen) done(); }, 1500); return; }
+  queue = keys.filter(k => AUDIO[k]);
+  if (delay) setTimeout(()=>playNext(g), delay); else playNext(g);
 }
-function stopSpeech(){ queue=[]; try{ player.pause(); }catch(e){} }
+function stopSpeech(){ gen++; queue=[]; doneCb=null; try{ player.pause(); }catch(e){} }
 $('vnote').textContent = "🔊 Ovoz chiqmasa: telefon ovozini balandlating va jim (silent) rejimini o'chiring.";
 /* ---------- sounds ---------- */
 let ac;
@@ -393,7 +401,7 @@ function go(name){
   screens.forEach(s => $(s).hidden = s!==name);
   current = name;
   window.scrollTo(0,0);
-  if (name==='learn') { li = Math.min(li, pool().length-1); renderLearn(true); }
+  if (name==='learn') { li = Math.min(li, pool().length-1); renderLearn(false); }
   if (name==='find') startFind();
   if (name==='balloon') startBalloons();
 }
@@ -464,10 +472,9 @@ function tapFind(el, c){
     el.classList.add('right','show');
     $('fgrid').querySelectorAll('.tile').forEach(t=>{ if(t!==el) t.classList.add('dim'); });
     ding(); addStar(); flash('⭐');
-    speak(['_|p'+(Math.random()*5|0), c.en+'|yes', c.en+'|uzits']);
+    speak(['_|p'+(Math.random()*5|0), c.en+'|yes', c.en+'|uzits'], ()=> setTimeout(()=>{ if(current==='find' && fLock) nextFind(); }, 700), 450);
     fRound++;
     [...$('fprog').children].forEach((d,i)=>{ d.className = i<fRound?'done':''; });
-    setTimeout(nextFind, 2600);
   } else {
     fMiss++;
     el.classList.remove('wrong'); void el.offsetWidth; el.classList.add('wrong','show');
@@ -546,7 +553,7 @@ let lastGame='find';
 function celebrate(game){
   lastGame=game;
   $('party').hidden=false; confetti(80); ding(); addStar(3);
-  speak(['_|star','_|bar']);
+  speak(['_|star','_|bar'], null, 500);
 }
 $('pagain').onclick = ()=> go(lastGame);
 $('phome').onclick = ()=> go('home');
