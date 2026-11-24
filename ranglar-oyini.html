@@ -417,6 +417,7 @@ setLevel(level);
 /* ---------- LEARN ---------- */
 let li = 0;
 function renderLearn(sayIt){
+  stopSpeech();
   const P = pool(), c = P[li];
   $('lblob').style.background = c.bg;
   $('lblob').textContent = c.e;
