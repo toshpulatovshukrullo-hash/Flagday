@@ -20,3 +20,4 @@ output/audio.wav
 output/qa/
 __pycache__/
 goal_reel/models/
+output/cache_enh/

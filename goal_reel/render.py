@@ -87,6 +87,25 @@ print(f"  {NF} kadr", flush=True)
 _flow_cache = {}
 _grid = np.dstack(np.meshgrid(np.arange(SW, dtype=np.float32), np.arange(SH, dtype=np.float32)))
 
+# AI bilan tiniqlashtirilgan kadrlar (goal_reel/enhance_frames.py, Real-ESRGAN, 2x). Bo'lmasa — Lanczos 2x.
+ESC = 2
+ENH_DIR = os.path.join(ROOT, "output/cache_enh")
+_grid2 = np.dstack(np.meshgrid(np.arange(SW * ESC, dtype=np.float32), np.arange(SH * ESC, dtype=np.float32)))
+_hi_cache = {}
+ENH_USED, ENH_MISSING = set(), set()
+
+
+def HI(i):
+    if i not in _hi_cache:
+        p = os.path.join(ENH_DIR, f"f{i:04d}.png")
+        if os.path.exists(p):
+            _hi_cache[i] = cv2.imread(p)
+            ENH_USED.add(i)
+        else:
+            ENH_MISSING.add(i)
+            _hi_cache[i] = cv2.resize(FRAMES[i], (SW * ESC, SH * ESC), interpolation=cv2.INTER_LANCZOS4)
+    return _hi_cache[i]
+
 
 # Telekanal logotipi qimirlamaydi: uning hududida oqim nolga tenglanadi (logotip buzilmaydi, o'zgartirilmaydi)
 LOGO_BOX = (470, 60, 690, 125)  # x0, y0, x1, y1 (manba piksellarida)
@@ -133,17 +152,17 @@ def src_frame(t, lo, hi):
     i = int(math.floor(x))
     a = x - i
     if i >= hi or a < 0.03:
-        return FRAMES[min(i, hi)].astype(np.float32)
+        return HI(min(i, hi)).astype(np.float32)
     if a > 0.97:
-        return FRAMES[i + 1].astype(np.float32)
-    f01, f10, v0, v1 = _flows(i)
-    ft0 = -(1 - a) * a * f01 + a * a * f10
-    ft1 = (1 - a) ** 2 * f01 - a * (1 - a) * f10
-    g0 = _warp(FRAMES[i], ft0).astype(np.float32)
-    g1 = _warp(FRAMES[i + 1], ft1).astype(np.float32)
-    w0 = ((1 - a) * _warp(v0, ft0) + 1e-3)[..., None]
-    w1 = (a * _warp(v1, ft1) + 1e-3)[..., None]
-    return (w0 * g0 + w1 * g1) / (w0 + w1)
+        return HI(i + 1).astype(np.float32)
+    f01, f10, _, _ = _flows(i)
+    # oqim 720p da hisoblanadi, 2x tiniqlashtirilgan kadrlarga masshtablanadi
+    up = lambda f: cv2.resize(f, (SW * ESC, SH * ESC), interpolation=cv2.INTER_LINEAR) * ESC
+    ft0 = up(-(1 - a) * a * f01 + a * a * f10)
+    ft1 = up((1 - a) ** 2 * f01 - a * (1 - a) * f10)
+    w = lambda img, fl: cv2.remap(img, *(lambda m: (m[..., 0], m[..., 1]))(_grid2 + fl), cv2.INTER_LINEAR,
+                                  borderMode=cv2.BORDER_REPLICATE)
+    return (1 - a) * w(HI(i), ft0).astype(np.float32) + a * w(HI(i + 1), ft1).astype(np.float32)
 
 
 # ----------------------------------------------------------------------------- virtual camera
@@ -152,14 +171,16 @@ def camera(img, z, cx, cy, rot_deg=0.0):
     z = max(z, math.cos(th) + (H / W) * math.sin(th) if rot_deg else 1.0)  # kadrni to'liq qoplash
     hw, hh = SW / (2 * z), SH / (2 * z)
     cx, cy = clamp(cx, hw, SW - hw), clamp(cy, hh, SH - hh)
-    s = BASE * z
-    M = cv2.getRotationMatrix2D((cx, cy), rot_deg, s)
-    M[0, 2] += W / 2 - cx
-    M[1, 2] += H / 2 - cy
-    out = cv2.warpAffine(img, M, (W, H), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
-    if s > 1.2:  # kattalashtirishdan keyingi yumshoq keskinlik
-        blur = cv2.GaussianBlur(out, (0, 0), 1.2 + 0.25 * (s - 1.5))
-        out = cv2.addWeighted(out, 1.45, blur, -0.45, 0)
+    k = img.shape[1] / SW  # 2: tiniqlashtirilgan kadr
+    s = BASE * z / k
+    M = cv2.getRotationMatrix2D((cx * k, cy * k), rot_deg, s)
+    M[0, 2] += W / 2 - cx * k
+    M[1, 2] += H / 2 - cy * k
+    out = cv2.warpAffine(img, M, (W, H), flags=cv2.INTER_AREA if s < 1 else cv2.INTER_LANCZOS4,
+                         borderMode=cv2.BORDER_REFLECT)
+    if s > 1.05:  # kattalashtirishdan keyingi yengil keskinlik
+        blur = cv2.GaussianBlur(out, (0, 0), 1.0)
+        out = cv2.addWeighted(out, 1.25, blur, -0.25, 0)
     return out
 
 
@@ -180,7 +201,7 @@ def grade(img, freeze=0.0, vig=1.0):
         x = x * (1 - 0.18 * freeze) + np.array([0.10, 0.04, -0.02]) * freeze * 0.5 + 0.09 * freeze * lum
     v = 1 - (1 - VIGNETTE) * (vig + 0.6 * freeze)
     x = x * v
-    x = x * 255 + _rng.normal(0, 3.2, (H, W, 1))  # plyonka donadorligi
+    x = x * 255 + _rng.normal(0, 2.4, (H, W, 1))  # plyonka donadorligi
     return np.clip(x, 0, 255)
 
 
@@ -399,7 +420,7 @@ def render(n):
     if s["interp"]:
         img = src_frame(st, s["lo"], s["hi"])
     else:
-        img = FRAMES[int(clamp(round(st * SRC_FPS), s["lo"], s["hi"]))].astype(np.float32)
+        img = HI(int(clamp(round(st * SRC_FPS), s["lo"], s["hi"]))).astype(np.float32)
     z, cx, cy, rot = s["cam"](u, st)
     # zarba va gol lahzalarida silkinish
     for tk, amp in ((T_KICK, 14), (T_GOAL, 10)):
@@ -461,6 +482,7 @@ def main():
         for s in SCENES:
             fh.write(f"{s['name']} {s['start']:.3f} {s['dur']:.3f} src {s['src'](0):.3f}->{s['src'](s['dur']):.3f}\n")
     print("tayyor:", path, f"{TOTAL:.2f}s", flush=True)
+    print(f"AI kadrlar: {len(ENH_USED)}, tiniqlashtirilmagan (Lanczos): {sorted(ENH_MISSING)}", flush=True)
 
 
 if __name__ == "__main__":
