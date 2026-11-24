@@ -28,4 +28,18 @@ Yakuniy sahnada haqiqiy efir kadri qoladi.
 
 ---
 
+## Google Flow (Veo) da qanday qilinadi
+1. labs.google/flow → **New project**.
+2. Rejim: **Frames to Video**. **Start frame** sifatida tegishli `.jpg` kadrni yuklang.
+3. Model: **Veo 3** (Quality, agar mavjud bo'lsa). Format: **9:16 (portrait)**. Ovozni o'chiring yoki keyin olib tashlaymiz.
+4. Promptni yuqoridan ko'chiring. Veo negative prompt maydoni bo'lmasa, prompt oxiriga qo'shing:
+   `No text, no watermark, no extra players, realistic anatomy, no face close-up.`
+5. Har sahnaga **2–4 variant** yarating, eng yaxshisini **Download → 1080p (Upscaled)** bilan yuklab oling.
+6. Fayllarni shunday nomlang: `flow_1.mp4`, `flow_2.mp4`, `flow_3.mp4`, `flow_6.mp4`, `flow_7.mp4`.
+
+Maslahat: 2-sahna (orbit) uchun Flow'dagi **Camera control → Orbit**dan foydalaning (mavjud bo'lsa).
+Veo klipi 8 soniya bo'ladi, keraklisini men kesib, tezligini sozlayman.
+
+---
+
 **Natijani qaytarish:** tayyor kliplarni (MP4) chatga yuklang. Men ularni reelga yig'aman: sahnalarni joylashtiraman, tezlik rampasi, matnlar va ovoz qo'shaman, rangni bir xillashtiraman.
