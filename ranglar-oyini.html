@@ -427,7 +427,7 @@ function renderLearn(sayIt){
   $('s2en').textContent = c.s;               $('s2uz').textContent = c.su;
   $('lcount').textContent = `${li+1} / ${P.length}`;
   $('strip').innerHTML = P.map((x,i)=>`<button data-i="${i}" class="${i===li?'on':''}" style="background:${x.bg}" aria-label="${x.en}"></button>`).join('');
-  $('strip').querySelectorAll('button').forEach(b=> b.onclick=()=>{ li=+b.dataset.i; renderLearn(true); });
+  $('strip').querySelectorAll('button').forEach(b=> b.onclick=()=>{ li=+b.dataset.i; renderLearn(false); });
   if (sayIt) sayLearn();
 }
 function sayLearn(){
@@ -438,8 +438,8 @@ $('lblob').onclick = ()=>{ sayLearn(); $('lblob').animate([{transform:'scale(1)'
 $('sayall').onclick = sayLearn;
 $('s1').onclick = ()=>{ const c=pool()[li]; speak([c.en+'|its',c.en+'|uzits']); };
 $('s2').onclick = ()=>{ const c=pool()[li]; speak([c.en+'|sent',c.en+'|uzsent']); };
-$('prev').onclick = ()=>{ const n=pool().length; li=(li-1+n)%n; renderLearn(true); };
-$('next').onclick = ()=>{ const n=pool().length; li=(li+1)%n; renderLearn(true); };
+$('prev').onclick = ()=>{ const n=pool().length; li=(li-1+n)%n; renderLearn(false); };
+$('next').onclick = ()=>{ const n=pool().length; li=(li+1)%n; renderLearn(false); };
 
 /* ---------- FIND ---------- */
 const ROUNDS = 10;
